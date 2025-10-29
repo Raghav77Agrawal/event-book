@@ -18,7 +18,7 @@ const EventDetails = () => {
       }
 
       const token = await user.getIdToken();
-      const res = await fetch(`${process.env.REACT_BACKEND_URL}/bookticket`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/bookticket`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,7 +40,7 @@ const EventDetails = () => {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const res = await fetch(`${process.env.REACT_BACKEND_URL}/view-event/${id}`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/view-event/${id}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

@@ -24,6 +24,7 @@ const Ticket = sequelize.define("Ticket", {
     allowNull:false,
   }
 }, {
+  tableName:"tickets",
   timestamps: true,
 });
 

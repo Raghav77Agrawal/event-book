@@ -8,7 +8,7 @@ const EventList = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch(`${process.env.REACT_BACKEND_URL}/view-events`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/view-events`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

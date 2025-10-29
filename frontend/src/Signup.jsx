@@ -16,7 +16,7 @@ const Signup = () => {
       const user = auth.currentUser;
 
 const token = await user.getIdToken();
-const res = await fetch(`${process.env.REACT_BACKEND_URL}/protected`, {
+const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/protected`, {
    headers: {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",  
@@ -44,7 +44,7 @@ if(res.ok){
 
 const token = await user.getIdToken();
 
-const res = await fetch(`${process.env.REACT_BACKEND_URL}/protected`, {
+const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/protected`, {
   headers: {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",  // 🔴 Missing earlier

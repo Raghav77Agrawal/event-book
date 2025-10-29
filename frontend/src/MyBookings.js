@@ -18,7 +18,7 @@ const MyBookings = () => {
       const token = await user.getIdToken();
 
       try {
-        const res = await fetch(`${process.env.REACT_BACKEND_URL}/mytickets`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/mytickets`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

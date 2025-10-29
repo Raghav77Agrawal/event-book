@@ -8,7 +8,7 @@ const AdminEventPage = () => {
 
   const handleApprove = async () => {
     try {
-      await fetch(`${process.env.REACT_BACKEND_URL}/approve`, {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/approve`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -25,7 +25,7 @@ const AdminEventPage = () => {
 
   const handleReject = async () => {
     try {
-      await fetch(`${process.env.REACT_BACKEND_URL}/reject`, {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/reject`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -43,7 +43,7 @@ const AdminEventPage = () => {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const res = await fetch(`${process.env.REACT_BACKEND_URL}/view-event/${id}`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/view-event/${id}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

@@ -16,6 +16,7 @@ const Event = sequelize.define("Event", {
   price: { type: DataTypes.FLOAT, allowNull: false }, 
   createdBy:{type:DataTypes.STRING}
 }, {
+  tableName:"events",
   timestamps: true,
 });
 

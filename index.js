@@ -1,5 +1,6 @@
+require("dotenv").config()
 const User = require("./models/user.js");
-const Events = require("./models/event.js");
+const Event = require("./models/event.js");
 const express = require('express');
 const cors = require('cors');
 const vt = require('./middleware/auth.js');
@@ -28,7 +29,7 @@ res.status(200).json({message:'ok'});
 app.post('/add-event',async (req,res)=>{
   const {name,description,date,time,venue,price,organizer} = req.body;
 try{
-  const x = await Events.create({title:name,description:description,date:date,time:time,location:venue, price:price,createdBy:organizer});
+  const x = await Event.create({title:name,description:description,date:date,time:time,location:venue, price:price,createdBy:organizer});
 
 }
 catch(e){
@@ -36,33 +37,46 @@ catch(e){
 }
 res.status(200).json({message:'done successfully'});
 });
-app.get('/view-events', async (req,res)=>{
-  const [rows] = await sequelize.query("select * from events where status = 'approved'");
-  res.json(rows);
-});
-app.get('/pending-req',async (req,res)=>{
-  const [rows] = await sequelize.query("select * from events where status = 'pending'");
-  res.json(rows);
-})
-app.get('/view-event/:id', async (req, res) => {
-  const eventId = req.params.id;
-  const [rows] = await sequelize.query(
-    'SELECT * FROM events WHERE id = ?', {
-      replacements: [eventId]
-    }
-  );
-  if (rows.length > 0) {
-    res.json(rows[0]);
-  } else {
-    res.status(404).json({ message: "Event not found" });
+app.get('/view-events', async (req, res) => {
+  try {
+    const events = await Event.findAll({ where: { status: 'approved' } });
+    res.json(events);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch events" });
   }
 });
+
+app.get('/pending-req', async (req, res) => {
+  try {
+    const pendingEvents = await Event.findAll({ where: { status: 'pending' } });
+    res.json(pendingEvents);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch pending requests" });
+  }
+});
+
+app.get('/view-event/:id', async (req, res) => {
+  const eventId = req.params.id;
+  try {
+    const event = await Event.findOne({ where: { id: eventId } });
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+    res.json(event);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch event" });
+  }
+});
+
 app.post('/approve', async (req,res)=>{
-await Events.update({status:"approved"},{where:{id:req.body.eventid}})
+await Event.update({status:"approved"},{where:{id:req.body.eventid}})
 res.status(200).json({msg:"ok"});
 });
 app.post('/reject', async (req,res)=>{
-await Events.update({status:"rejected"},{where:{id:req.body.eventid}})
+await Event.update({status:"rejected"},{where:{id:req.body.eventid}})
 res.status(200).json({msg:"ok"});
 });
 app.post('/bookticket',vt,async(req,res)=>{
@@ -72,7 +86,7 @@ app.post('/bookticket',vt,async(req,res)=>{
  
   try{
     
-    const ev = await Events.findOne({where:{id:eventid}});
+    const ev = await Event.findOne({where:{id:eventid}});
   
     const x = await Ticket.create({eventid:eventid,email:email,price:ev.price});
     
@@ -95,7 +109,7 @@ app.get('/ticket/:id', vt, async (req, res) => {
     if (!ticket) {
       return res.status(404).json({ error: "Ticket not found" });
     }
-    const event = await Events.findOne({where:{id:ticket.eventid}});
+    const event = await Event.findOne({where:{id:ticket.eventid}});
     res.status(200).json({
       ticketId: ticket.id,
       email: ticket.email,
@@ -114,7 +128,7 @@ app.get('/mytickets', vt, async (req, res) => {
   const tickets = await Ticket.findAll({ where: { email } });
    const enrichedTickets = await Promise.all(
       tickets.map(async (ticket) => {
-        const event = await Events.findOne({ where: { id: ticket.eventid } });
+        const event = await Event.findOne({ where: { id: ticket.eventid } });
 console.log(event);
         return {
           id: ticket.id,
@@ -135,7 +149,11 @@ console.log(event);
     res.status(200).json(enrichedTickets);
   
 });
-
+sequelize.sync({ force: false }) // set force:true only if you want to recreate tables
+  .then(() => {
+    console.log("All tables created successfully!");
+  })
+  .catch((err) => console.error("Error creating tables:", err));
   const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);

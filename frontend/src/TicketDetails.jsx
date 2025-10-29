@@ -17,7 +17,7 @@ const TicketDetails = () => {
 
       const token = await user.getIdToken();
 
-      const res = await fetch(`${process.env.REACT_BACKEND_URL}/ticket/${id}`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/ticket/${id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
