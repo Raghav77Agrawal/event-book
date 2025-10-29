@@ -9,7 +9,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-  origin: "http://localhost:3000", // allow React dev server
+  origin: process.env.frontendurl, // allow React dev server
   credentials: true
 }));
   app.post('/protected',vt,async (req,res)=>{

@@ -17,7 +17,7 @@ const TicketDetails = () => {
 
       const token = await user.getIdToken();
 
-      const res = await fetch(`http://localhost:5000/ticket/${id}`, {
+      const res = await fetch(`${process.env.REACT_BACKEND_URL}/ticket/${id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

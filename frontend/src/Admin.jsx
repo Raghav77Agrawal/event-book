@@ -9,8 +9,8 @@ const AdminLogin = ({setIsAdmin}) => {
 
     // --- HARDCODED ADMIN CREDENTIALS ---
     // In a real application, this would be handled securely on the backend.
-    const HARDCODED_ID = 'admin_iet';
-    const HARDCODED_CODE = 'iet@davv2025';
+    const HARDCODED_ID = process.env.REACT_USERID;
+    const HARDCODED_CODE = process.env.REACT_PASSWORD;
 
     const handleLogin = (e) => {
         e.preventDefault();

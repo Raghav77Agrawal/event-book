@@ -8,7 +8,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch("http://localhost:5000/pending-req", {
+        const res = await fetch(`${process.env.REACT_BACKEND_URL}/pending-req`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

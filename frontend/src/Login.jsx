@@ -16,7 +16,7 @@ const Login = () => {
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const user = auth.currentUser;
       const token = await user.getIdToken();
-      const res = await fetch("http://localhost:5000/protected", {
+      const res = await fetch(`${process.env.REACT_BACKEND_URL}/protected`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -44,7 +44,7 @@ const Login = () => {
       await signInWithPopup(auth, googleProvider);
       const user = auth.currentUser;
       const token = await user.getIdToken();
-      const res = await fetch("http://localhost:5000/protected", {
+      const res = await fetch(`${process.env.REACT_BACKEND_URL}/protected`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
