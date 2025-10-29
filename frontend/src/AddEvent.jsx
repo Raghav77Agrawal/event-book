@@ -34,7 +34,7 @@ const AddEvent = () => {
       });
 
       if (res.ok) {
-        alert("🎉 Event registered successfully!");
+     alert("Your event will be listed in 1hour in upcoming events if approved by admin");
       }
     } catch (e) {
       console.error("Error adding event:", e);
@@ -182,6 +182,7 @@ const AddEvent = () => {
             <button
               type="submit"
               className="btn px-5 py-2 fw-semibold shadow-sm"
+          
               style={{
                 borderRadius: "2rem",
                 fontSize: "1.1rem",
