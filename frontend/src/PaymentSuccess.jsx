@@ -92,7 +92,7 @@ const PaymentSuccess = () => {
         )}
 
         <button
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/event")}
           className="btn btn-lg w-100 text-white shadow-sm"
           style={{
             background: isVerified ? "#22c55e" : "#6c757d",
