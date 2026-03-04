@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getAuth } from "firebase/auth";
 
@@ -13,8 +13,8 @@ const EventDetails = () => {
       const user = auth.currentUser;
 
       if (!user) {
-        alert("You must be logged in to book a ticket.");
-        return;
+        alert("Please login to reserve your spot!");
+        navigate("/login");
       }
 
       const token = await user.getIdToken();
@@ -24,101 +24,103 @@ const EventDetails = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        credentials: "include",
         body: JSON.stringify({ eventid: id }),
       });
 
       const data = await res.json();
-      navigate(`/ticket/${data.ticketid}`);
-      alert("Ticket booked successfully!");
+      if (data.url) {
+        window.location.href = data.url;
+      }
     } catch (e) {
-      console.log(e);
-      alert("Something went wrong while booking.");
+      console.error(e);
     }
   };
 
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/view-event/${id}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/view-event/${id}`);
         const data = await res.json();
         setEvent(data);
       } catch (err) {
-        console.log("Failed to fetch event:", err);
+        console.log("Error:", err);
       }
     };
     fetchEvent();
   }, [id]);
 
-  if (!event) {
-    return <div className="text-center py-5 fw-bold fs-4">Loading event...</div>;
-  }
+  if (!event) return (
+    <div className="loader-container">
+      <div className="spinner-border text-primary"></div>
+    </div>
+  );
 
   return (
-    <div
-      className="container-fluid d-flex align-items-center justify-content-center py-5"
-      style={{
-        background: "linear-gradient(135deg, #f8fafc, #dbeafe)",
-        minHeight: "100vh",
-      }}
-    >
-      <div
-        className="card shadow-lg p-4"
-        style={{
-          borderRadius: "1.2rem",
-          maxWidth: "750px",
-          width: "100%",
-          background: "white",
-          border: "none",
-        }}
-      >
-        <div className="text-center mb-4">
-          <h2 className="fw-bold text-primary">{event.title}</h2>
-          <p className="text-muted">{event.description || "No details provided."}</p>
-        </div>
+    <div className="event-details-wrapper">
+      {/* Animated Background Shapes */}
+      <div className="bg-shape shape-1"></div>
+      <div className="bg-shape shape-2"></div>
+      <div className="bg-shape shape-3"></div>
 
-        <div className="mb-3">
-          <p className="mb-1">
-            <strong>Date:</strong> {event.date}
-          </p>
-          <p className="mb-1">
-            <strong>Time:</strong> {event.time}
-          </p>
-          <p className="mb-1">
-            <strong>Location:</strong> {event.location}
-          </p>
-          <p className="mb-1">
-            <strong>Price:</strong> ₹{event.price}
-          </p>
-          <p className="mb-1">
-            <strong>Organiser:</strong> {event.createdBy}
-          </p>
-        </div>
+      <div className="container py-5 d-flex justify-content-center align-items-center position-relative">
+        <div className="glass-event-card shadow-lg overflow-hidden">
+          
+          {/* Top Banner Section */}
+          <div className="event-header-banner p-5 text-center text-white">
+            <span className="badge bg-warning text-dark mb-3 px-3 py-2 rounded-pill fw-bold">
+              UPCOMING EVENT
+            </span>
+            <h1 className="display-5 fw-bold mb-2">{event.title}</h1>
+            <p className="opacity-75 fs-5">Hosted by {event.createdBy}</p>
+          </div>
 
-        <div className="text-center mt-4">
-          <button
-            onClick={handleBookTicket}
-            className="btn px-5 py-2 fw-semibold"
-            style={{
-              background: "linear-gradient(90deg, #1e3a8a, #2563eb)",
-              color: "white",
-              borderRadius: "0.5rem",
-              transition: "0.3s",
-            }}
-            onMouseEnter={(e) =>
-              (e.target.style.background = "linear-gradient(90deg, #2563eb, #1e3a8a)")
-            }
-            onMouseLeave={(e) =>
-              (e.target.style.background = "linear-gradient(90deg, #1e3a8a, #2563eb)")
-            }
-          >
-            🎟️ Book Ticket
-          </button>
+          <div className="p-4 p-md-5 bg-white">
+            <div className="row g-4">
+              {/* Left Column: Description */}
+              <div className="col-md-7">
+                <h5 className="fw-bold text-primary mb-3">About the Event</h5>
+                <p className="text-muted leading-relaxed">
+                  {event.description || "Join us for an unforgettable experience filled with learning and networking opportunities."}
+                </p>
+              </div>
+
+              {/* Right Column: Key Details */}
+              <div className="col-md-5">
+                <div className="info-box p-3 rounded-3 mb-3 d-flex align-items-center">
+                  <div className="icon-circle bg-primary-light me-3">📅</div>
+                  <div>
+                    <small className="text-muted d-block">DATE</small>
+                    <span className="fw-bold">{event.date}</span>
+                  </div>
+                </div>
+
+                <div className="info-box p-3 rounded-3 mb-3 d-flex align-items-center">
+                  <div className="icon-circle bg-primary-light me-3">📍</div>
+                  <div>
+                    <small className="text-muted d-block">LOCATION</small>
+                    <span className="fw-bold">{event.location}</span>
+                  </div>
+                </div>
+
+                <div className="info-box p-3 rounded-3 mb-3 d-flex align-items-center border-success-subtle">
+                  <div className="icon-circle bg-success-light me-3">💰</div>
+                  <div>
+                    <small className="text-muted d-block">ENTRY FEE</small>
+                    <span className="fw-bold text-success fs-5">₹{event.price}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center mt-5">
+              <button onClick={handleBookTicket} className="btn-premium-book">
+                Confirm Booking & Pay
+              </button>
+              <p className="mt-3 text-muted small">
+                * Secure checkout powered by Stripe
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

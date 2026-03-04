@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getAuth } from "firebase/auth";
+import { Link } from "react-router-dom";
 
 const MyBookings = () => {
   const [tickets, setTickets] = useState([]);
@@ -9,23 +10,13 @@ const MyBookings = () => {
     const fetchTickets = async () => {
       const auth = getAuth();
       const user = auth.currentUser;
-
-      if (!user) {
-        alert("You must be logged in to view your bookings.");
-        return;
-      }
+      if (!user) return;
 
       const token = await user.getIdToken();
-
       try {
         const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/mytickets`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-
         const data = await res.json();
         setTickets(data);
       } catch (err) {
@@ -34,97 +25,86 @@ const MyBookings = () => {
         setLoading(false);
       }
     };
-
     fetchTickets();
   }, []);
 
-  if (loading)
-    return (
-      <div className="text-center py-5 text-secondary">
-        <div className="spinner-border text-primary mb-3"></div>
-        <h5>Loading your bookings...</h5>
-      </div>
-    );
+  if (loading) return (
+    <div className="d-flex flex-column justify-content-center align-items-center vh-100 bg-light">
+      <div className="spinner-grow text-primary" role="status"></div>
+      <h5 className="mt-3 text-muted">Retrieving your passes...</h5>
+    </div>
+  );
 
-  if (tickets.length === 0) {
-    return (
-      <div
-        className="text-center py-5"
-        style={{
-          background: "linear-gradient(135deg, #f8f9fa, #e9ecef)",
-          minHeight: "100vh",
-        }}
-      >
-        <h4 className="text-muted">You haven't booked any tickets yet.</h4>
+  if (tickets.length === 0) return (
+    <div className="container py-5 text-center vh-100 d-flex flex-column justify-content-center">
+      <div className="mb-4">
+        <i className="bi bi-ticket-perforated text-muted" style={{ fontSize: "5rem" }}></i>
       </div>
-    );
-  }
+      <h3 className="fw-bold">No bookings found</h3>
+      <p className="text-muted">Looks like you haven't reserved your spot for any events yet.</p>
+      <Link to="/" className="btn btn-primary btn-lg px-4 mt-3 rounded-pill">Browse Events</Link>
+    </div>
+  );
 
   return (
-    <div
-      className="container py-5"
-      style={{
-        background: "linear-gradient(135deg, #e0eafc, #cfdef3)",
-        minHeight: "100vh",
-      }}
-    >
-      <h2 className="mb-5 text-center fw-bold text-primary">
-        🎫 My Bookings
-      </h2>
+    <div className="bg-light min-vh-100">
+      <div className="container py-5">
+        <div className="d-flex justify-content-between align-items-center mb-5">
+          <h2 className="fw-bold mb-0">My Bookings</h2>
+          <span className="badge bg-white text-primary border px-3 py-2 rounded-pill shadow-sm">
+            {tickets.length} {tickets.length === 1 ? 'Ticket' : 'Tickets'}
+          </span>
+        </div>
 
-      <div className="row justify-content-center">
-        {tickets.map((ticket) => (
-          <div
-            key={ticket.id}
-            className="col-md-6 col-lg-4 mb-4 d-flex align-items-stretch"
-          >
-            <div
-              className="card shadow-lg border-0 p-4 w-100"
-              style={{
-                borderRadius: "1.5rem",
-                background: "white",
-                transition: "transform 0.2s, box-shadow 0.2s",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.transform = "translateY(-5px)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.transform = "translateY(0)")
-              }
-            >
-              <div className="mb-3 text-center">
-                <h4 className="fw-bold text-dark">{ticket.event.title}</h4>
-                <small className="text-muted">
-                  Ticket ID: <strong>{ticket.id}</strong>
-                </small>
+        <div className="row g-4">
+          {tickets.map((ticket) => (
+            <div key={ticket.id} className="col-12 col-md-6 col-lg-4">
+              <div className="card h-100 border-0 shadow-sm ticket-item-card">
+                {/* Visual Status Bar */}
+                <div className={`status-bar ${ticket.ticketType === 'booked' ? 'bg-success' : 'bg-warning'}`}></div>
+                
+                <div className="card-body p-4">
+                  <div className="d-flex justify-content-between align-items-start mb-3">
+                    <h5 className="card-title fw-bold text-dark mb-0">{ticket.event.title}</h5>
+                    <div className="text-primary fw-bold">₹{ticket.price}</div>
+                  </div>
+
+                  <div className="ticket-info-grid mb-4">
+                    <div className="mb-2">
+                      <i className="bi bi-calendar3 me-2 text-muted"></i>
+                      <span className="small">{ticket.event.date} at {ticket.event.time}</span>
+                    </div>
+                    <div className="mb-2">
+                      <i className="bi bi-geo-alt me-2 text-muted"></i>
+                      <span className="small text-truncate d-inline-block" style={{maxWidth: '200px'}}>
+                        {ticket.event.location}
+                      </span>
+                    </div>
+                    <div className="mb-2">
+                      <i className="bi bi-clock-history me-2 text-muted"></i>
+                      <span className="small text-muted">
+                        Booked {new Date(ticket.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="d-flex align-items-center justify-content-between mt-auto pt-3 border-top">
+                    <div>
+                      <small className="text-muted d-block" style={{fontSize: '0.7rem'}}>TICKET ID</small>
+                   <span className="fw-mono small text-uppercase">#{ticket.id}</span> 
+                    </div>
+                    <Link 
+                      to={`/ticket/${ticket.id}`} 
+                      className="btn btn-outline-primary btn-sm rounded-pill px-4"
+                    >
+                      View Details
+                    </Link>
+                  </div>
+                </div>
               </div>
-
-              <div className="text-muted mb-3">
-                <p className="mb-1">
-                  <strong>Date:</strong> {ticket.event.date}
-                </p>
-                <p className="mb-1">
-                  <strong>Time:</strong> {ticket.event.time}
-                </p>
-                <p className="mb-1">
-                  <strong>Location:</strong> {ticket.event.location}
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <strong>Price Paid:</strong> ₹{ticket.price}
-              </div>
-
-              <a
-                href={`/ticket/${ticket.id}`}
-                className="btn btn-primary w-100 py-2 fw-semibold"
-                style={{ borderRadius: "1rem" }}
-              >
-                View Ticket
-              </a>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

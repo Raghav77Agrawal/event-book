@@ -1,142 +1,116 @@
 import React, { useState } from "react";
 import { auth, googleProvider } from "./firebase";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { useNavigate, Link } from "react-router-dom";
 
 const Signup = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const sendTokenToBackend = async (user) => {
+    const token = await user.getIdToken();
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/protected`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      credentials: 'include',
+    });
+    return res.ok;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = auth.currentUser;
-
-const token = await user.getIdToken();
-const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/protected`, {
-   headers: {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",  
-  },
-  method:'POST',
-  credentials:'include',
-});
-if(res.ok){
-   alert("Signup successful");
-}
-   else{
-    alert("Signup failed");
-   }
-      setFormData({ email: "", password: "" });
+      const isOk = await sendTokenToBackend(auth.currentUser);
+      if (isOk) navigate("/events");
     } catch (err) {
-      console.error(err);
       alert(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleSignup = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-      const user = auth.currentUser;
-
-const token = await user.getIdToken();
-
-const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/protected`, {
-  headers: {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",  // 🔴 Missing earlier
-  },
-  method:'POST',
-  credentials:'include',
-  
-});
-if(res.ok){
-      alert("Google Signup successful");
-}
-else{
-  alert("Signup failed");
-}
+      const isOk = await sendTokenToBackend(auth.currentUser);
+      if (isOk) navigate("/events");
     } catch (err) {
-      console.log(err);
-     
+      console.error(err);
     }
   };
 
   return (
-    <div
-      className="d-flex justify-content-center align-items-center vh-100"
-      style={{ background: "linear-gradient(135deg, #f5f7fa, #c3cfe2)" }}
-    >
-      <div
-        className="card shadow-lg p-4"
-        style={{ width: "100%", maxWidth: "400px", borderRadius: "1rem", border: "none" }}
-      >
-        <div className="text-center mb-4">
-          <h2 className="fw-bold" style={{ color: "#333" }}>
-            Create an account
-          </h2>
-          <p className="text-muted small">Join our platform</p>
-        </div>
+    <div className="auth-page-wrapper">
+      {/* Animated Background Orbs */}
+      <div className="orb orb-1"></div>
+      <div className="orb orb-2"></div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-floating mb-3">
-            <input
-              type="email"
-              className="form-control"
-              name="email"
-              placeholder="name@example.com"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-            <label>Email address</label>
+      <div className="container d-flex justify-content-center align-items-center vh-100 position-relative">
+        <div className="glass-auth-card p-4 p-md-5">
+          <div className="text-center mb-5">
+            <h2 className="fw-bold text-dark tracking-tight">Create Account</h2>
+            <p className="text-muted small">Join our community and explore events</p>
           </div>
 
-          <div className="form-floating mb-4">
-            <input
-              type="password"
-              className="form-control"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-            <label>Password</label>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="auth-label">EMAIL ADDRESS</label>
+              <input
+                type="email"
+                className="auth-input"
+                name="email"
+                placeholder="name@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="auth-label">PASSWORD</label>
+              <input
+                type="password"
+                className="auth-input"
+                name="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+              <div className="password-hint mt-2">Must be at least 6 characters</div>
+            </div>
+
+            <button type="submit" className="btn-auth-primary w-100 py-3 mb-4" disabled={loading}>
+              {loading ? <span className="spinner-border spinner-border-sm"></span> : "Get Started"}
+            </button>
+          </form>
+
+          <div className="auth-divider mb-4">
+            <span>or sign up with</span>
           </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary w-100 py-2"
-            style={{ borderRadius: "2rem", fontWeight: "500" }}
-          >
-            Sign Up
+          <button onClick={handleGoogleSignup} className="btn-google-social w-100 mb-4">
+            <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" />
+            <span>Continue with Google</span>
           </button>
-        </form>
 
-        <div className="text-center my-3 text-muted">or</div>
-
-        <div className="text-center mb-3">
-  <button
-    onClick={handleGoogleSignup}
-    className="google-btn"
-  >
-    <img
-      src="https://developers.google.com/identity/images/g-logo.png"
-      alt="Google"
-      className="google-icon"
-    />
-    <span>Sign up with Google</span>
-  </button>
-</div>
-
+          <p className="text-center small text-muted mb-0">
+            Already have an account? <Link to="/login" className="text-indigo fw-bold text-decoration-none">Log in</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
 };
 
 export default Signup;
-

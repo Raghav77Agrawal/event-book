@@ -16,6 +16,8 @@ import AdminLogin from "./Admin";
 import { useState, useEffect } from "react";
 import AdminEventPage from "./AdminEventPage.jsx";
 import AdminDashboard from "./AdminDashBoard.jsx";
+import PaymentSuccess from "./PaymentSuccess.jsx";
+import PaymentCancel from "./PaymentCancel.jsx";
 
 function App() {
   const [user, loading] = useAuthState(auth);
@@ -53,6 +55,8 @@ function App() {
             isAdmin ? <AdminDashboard className="text-center mt-5">Pending Requests (Admin Dashboard)</AdminDashboard> : <Navigate to="/admin" />
           }
         />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
+<Route path="/payment-cancel" element={<PaymentCancel />} />
       </Routes>
     </Router>
   );

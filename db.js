@@ -2,13 +2,17 @@ const { Sequelize } = require("sequelize");
 require("dotenv").config();
 
 const sequelize = new Sequelize(
-  process.env.MYSQLDATABASE,
-  process.env.MYSQLUSER,
-  process.env.MYSQLPASSWORD,
+  process.env.DATABASE_URL,
   {
-    host: process.env.MYSQLHOST,
-    dialect: "mysql",
-    port:process.env.MYSQLPORT
+    
+    dialect: "postgres",
+    dialectOptions: {
+    ssl: {
+      require: true,
+      logging:false,
+      rejectUnauthorized: false // Required for Neon/Render connections
+    }
+  }
   }
 );
 
