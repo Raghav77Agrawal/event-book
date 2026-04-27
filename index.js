@@ -14,9 +14,7 @@ const vt = require('./middleware/auth.js');
 
 const app = express();
 
-// -----------------------------------------------------------
-// 1. STRIPE WEBHOOK (Must stay above express.json())
-// -----------------------------------------------------------
+//stripe webhook endpoint (must be before express.json())
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
@@ -53,18 +51,14 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
   res.json({ received: true });
 });
 
-// -----------------------------------------------------------
-// 2. STANDARD MIDDLEWARE
-// -----------------------------------------------------------
+
 app.use(express.json());
 app.use(cors({
   origin: process.env.frontendurl, 
   credentials: true
 }));
 
-// -----------------------------------------------------------
-// 3. USER ROUTES
-// -----------------------------------------------------------
+//USER ROUTES
 app.post('/protected', vt, async (req, res) => {
   const { name, email, uid } = req.user;
   try {
@@ -78,9 +72,7 @@ app.post('/protected', vt, async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------
-// 4. EVENT ROUTES (Public & Organizer)
-// -----------------------------------------------------------
+//EVENT ROUTES
 app.get('/view-events', async (req, res) => {
   try {
     const events = await Event.findAll({ where: { status: 'approved' } });
@@ -119,9 +111,9 @@ app.post('/add-event', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------
-// 5. ADMIN ROUTES
-// -----------------------------------------------------------
+
+// ADMIN ROUTES
+
 app.get('/pending-req', async (req, res) => {
   try {
     const pendingEvents = await Event.findAll({ where: { status: 'pending' } });
@@ -137,13 +129,13 @@ app.post('/approve', async (req, res) => {
 });
 
 app.post('/reject', async (req, res) => {
-  await Event.update({ status: "rejected" }, { where: { id: req.body.eventid } });
+  await Event.update({ status: "cancelled" }, { where: { id: req.body.eventid } });
   res.status(200).json({ msg: "ok" });
 });
 
-// -----------------------------------------------------------
-// 6. BOOKING & PAYMENT ROUTES
-// -----------------------------------------------------------
+
+// BOOKING & PAYMENT ROUTES
+
 app.post('/bookticket', vt, async (req, res) => {
   const { email } = req.user;
   const { eventid } = req.body;
@@ -262,9 +254,9 @@ app.get('/verify-session/:sessionId', async (req, res) => {
   res.json({ status: ticket.ticketType, event });
 });
 
-// -----------------------------------------------------------
-// 7. SERVER STARTUP
-// -----------------------------------------------------------
+
+// SERVER STARTUP
+
 sequelize.sync({ force: false })
   .then(() => {
     const PORT = process.env.PORT || 5000;
