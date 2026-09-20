@@ -3,16 +3,13 @@ const { Event, Ticket } = require("../models");
 const verifyFirebaseToken = require("../middleware/auth");
 const requireUser = require("../middleware/requireUser");
 const stripe = require("../config/stripe");
-const { Op } = require("sequelize");
 
 const router = express.Router();
 const authenticatedUser = [verifyFirebaseToken, requireUser];
 
 router.post("/bookticket", ...authenticatedUser, async (req, res) => {
   const eventId = Number(req.body.eventid);
-  if (!Number.isInteger(eventId) || eventId <= 0) {
-    return res.status(400).json({ message: "A valid event is required" });
-  }
+  if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ message: "A valid event is required" });
 
   try {
     const event = await Event.findOne({ where: { id: eventId, status: "approved" } });
@@ -23,6 +20,7 @@ router.post("/bookticket", ...authenticatedUser, async (req, res) => {
       userId: req.user.id,
       email: req.user.email,
       price: event.price,
+      ticketType: "pending",
     });
 
     try {
@@ -45,7 +43,7 @@ router.post("/bookticket", ...authenticatedUser, async (req, res) => {
 
       return res.json({ url: session.url, id: ticket.id });
     } catch (stripeError) {
-      await ticket.destroy();
+      await ticket.update({ ticketType: "failed" });
       throw stripeError;
     }
   } catch (error) {
@@ -57,10 +55,7 @@ router.post("/bookticket", ...authenticatedUser, async (req, res) => {
 router.get("/verify-session/:sessionId", ...authenticatedUser, async (req, res) => {
   try {
     const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
-    const ticket = await Ticket.findOne({
-      where: { id: session.metadata?.bookingId, userId: req.user.id },
-    });
-
+    const ticket = await Ticket.findOne({ where: { id: session.metadata?.bookingId, userId: req.user.id } });
     if (!ticket) return res.status(404).json({ message: "Ticket not found" });
     const event = await Event.findByPk(ticket.eventid);
     return res.json({ status: ticket.ticketType, event });

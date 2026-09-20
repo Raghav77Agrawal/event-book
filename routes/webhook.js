@@ -21,18 +21,21 @@ router.post("/", async (req, res) => {
   try {
     const session = stripeEvent.data.object;
     const ticketId = session.metadata?.bookingId;
-
     if (!ticketId) return res.json({ received: true });
 
     if (stripeEvent.type === "checkout.session.completed") {
       await Ticket.update(
         { ticketType: "booked" },
-        { where: { id: ticketId, ticketType: "cancelled" } }
+        { where: { id: ticketId, ticketType: "pending" } }
       );
     }
 
-    if (["checkout.session.expired", "payment_intent.payment_failed"].includes(stripeEvent.type)) {
-      await Ticket.update({ ticketType: "cancelled" }, { where: { id: ticketId } });
+    if (stripeEvent.type === "checkout.session.expired") {
+      await Ticket.update({ ticketType: "cancelled" }, { where: { id: ticketId, ticketType: "pending" } });
+    }
+
+    if (stripeEvent.type === "payment_intent.payment_failed") {
+      await Ticket.update({ ticketType: "failed" }, { where: { id: ticketId, ticketType: "pending" } });
     }
 
     return res.json({ received: true });
