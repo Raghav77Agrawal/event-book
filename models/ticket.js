@@ -1,4 +1,4 @@
-const { DataTypes, ENUM } = require("sequelize");
+const { DataTypes } = require("sequelize");
 const sequelize = require("../db");
 
 const Ticket = sequelize.define("Ticket", {
@@ -8,23 +8,27 @@ const Ticket = sequelize.define("Ticket", {
     primaryKey: true,
   },
   ticketType: {
-    type: ENUM("cancelled","booked"),
+    type: DataTypes.ENUM("cancelled", "booked"),
     defaultValue: "cancelled",
   },
   price: {
     type: DataTypes.FLOAT,
     allowNull: false,
   },
-  eventid:{
-    type:DataTypes.STRING,
-    allowNull:false,
+  eventid: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
-  email:{
-    type:DataTypes.STRING,
-    allowNull:false,
-  }
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
 }, {
-  tableName:"tickets",
+  tableName: "tickets",
   timestamps: true,
 });
 

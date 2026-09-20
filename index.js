@@ -1,22 +1,21 @@
 require("dotenv").config();
-const express = require('express');
-const cors = require('cors');
+const express = require("express");
+const cors = require("cors");
+const { Op } = require("sequelize");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // Models & DB
-const sequelize = require("./db");
-const User = require("./models/user.js");
-const Event = require("./models/event.js");
-const Ticket = require("./models/ticket.js");
+const { sequelize, User, Event, Ticket } = require("./models");
 
 // Middleware
-const vt = require('./middleware/auth.js');
+const verifyFirebaseToken = require("./middleware/auth.js");
+const requireAdmin = require("./middleware/admin.js");
 
 const app = express();
 
-//stripe webhook endpoint (must be before express.json())
-app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
+// Stripe webhook must be registered before express.json().
+app.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  const sig = req.headers["stripe-signature"];
   let event;
 
   try {
@@ -26,240 +25,253 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    console.log("❌ Webhook error:", err.message);
+    console.error("Webhook signature error:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  const session = event.data.object;
-  const ticketId = session.metadata?.bookingId;
+  try {
+    const session = event.data.object;
+    const ticketId = session.metadata?.bookingId;
 
-  switch (event.type) {
-    case 'checkout.session.completed':
-      console.log(`✅ Payment success for Ticket: ${ticketId}`);
-      await Ticket.update({ ticketType: "booked" }, { where: { id: ticketId } });
-      break;
-
-    case 'checkout.session.expired':
-    case 'payment_intent.payment_failed':
-      if (ticketId) {
-        console.log(`❌ Payment failed for Ticket: ${ticketId}`);
-        await Ticket.update({ ticketType: "cancelled" }, { where: { id: ticketId } });
+    if (ticketId) {
+      switch (event.type) {
+        case "checkout.session.completed":
+          await Ticket.update(
+            { ticketType: "booked" },
+            { where: { id: ticketId, ticketType: "cancelled" } }
+          );
+          break;
+        case "checkout.session.expired":
+        case "payment_intent.payment_failed":
+          await Ticket.update(
+            { ticketType: "cancelled" },
+            { where: { id: ticketId } }
+          );
+          break;
+        default:
+          break;
       }
-      break;
+    }
+
+    return res.json({ received: true });
+  } catch (error) {
+    console.error("Webhook processing error:", error);
+    return res.status(500).json({ message: "Webhook processing failed" });
   }
-
-  res.json({ received: true });
 });
-
 
 app.use(express.json());
 app.use(cors({
-  origin: process.env.frontendurl, 
-  credentials: true
+  origin: process.env.frontendurl,
+  credentials: true,
 }));
 
-//USER ROUTES
-app.post('/protected', vt, async (req, res) => {
-  const { name, email, uid } = req.user;
+app.get("/health", (req, res) => res.json({ status: "ok" }));
+
+// Synchronize the authenticated Firebase user with the application user record.
+app.post("/protected", verifyFirebaseToken, async (req, res) => {
+  const { name, email, uid } = req.firebaseUser;
+
   try {
-    let user = await User.findOne({ where: { firebaseuid: uid } });
-    if (!user) {
-      user = await User.create({ name, email, firebaseuid: uid });
+    const [user] = await User.findOrCreate({
+      where: { firebaseuid: uid },
+      defaults: { name: name || email, email, firebaseuid: uid },
+    });
+
+    if (user.email !== email || user.name !== (name || email)) {
+      await user.update({ name: name || email, email });
     }
-    res.status(200).json({ message: 'ok' });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    console.error("User synchronization failed:", error);
+    return res.status(500).json({ message: "Failed to synchronize user" });
   }
 });
 
-//EVENT ROUTES
-app.get('/view-events', async (req, res) => {
+// Public event routes.
+app.get("/view-events", async (req, res) => {
   try {
-    const events = await Event.findAll({ where: { status: 'approved' } });
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch events" });
+    const events = await Event.findAll({ where: { status: "approved" } });
+    return res.json(events);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch events" });
   }
 });
 
-app.get('/view-event/:id', async (req, res) => {
+app.get("/view-event/:id", async (req, res) => {
   try {
     const event = await Event.findByPk(req.params.id);
     if (!event) return res.status(404).json({ message: "Event not found" });
-    res.json(event);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch event" });
+    return res.json(event);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch event" });
   }
 });
 
-app.post('/add-event', async (req, res) => {
-  const { name, description, date, time, venue, price, organizer } = req.body;
+// Only authenticated users may submit events. Ownership is derived server-side.
+app.post("/add-event", verifyFirebaseToken, async (req, res) => {
+  const { name, description, date, time, venue, price } = req.body;
+
   try {
-    await Event.create({
+    const event = await Event.create({
       title: name,
       description,
       date,
       time,
       location: venue,
       price,
-      createdBy: organizer,
-      status: 'pending' // Good practice to default to pending
+      createdBy: req.user.name || req.user.email,
+      status: "pending",
     });
-    res.status(200).json({ message: 'done successfully' });
-  } catch (e) {
-    res.status(500).json({ error: "Failed to add event" });
+
+    return res.status(201).json({ message: "Event submitted for review", event });
+  } catch (error) {
+    console.error("Event creation failed:", error);
+    return res.status(500).json({ message: "Failed to add event" });
   }
 });
 
-
-// ADMIN ROUTES
-
-app.get('/pending-req', async (req, res) => {
+// Admin-only routes.
+app.get("/pending-req", verifyFirebaseToken, requireAdmin, async (req, res) => {
   try {
-    const pendingEvents = await Event.findAll({ where: { status: 'pending' } });
-    res.json(pendingEvents);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch pending requests" });
+    const pendingEvents = await Event.findAll({ where: { status: "pending" } });
+    return res.json(pendingEvents);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch pending requests" });
   }
 });
 
-app.post('/approve', async (req, res) => {
-  await Event.update({ status: "approved" }, { where: { id: req.body.eventid } });
-  res.status(200).json({ msg: "ok" });
+app.post("/approve", verifyFirebaseToken, requireAdmin, async (req, res) => {
+  const [updatedCount] = await Event.update(
+    { status: "approved" },
+    { where: { id: req.body.eventid, status: "pending" } }
+  );
+
+  if (!updatedCount) return res.status(404).json({ message: "Pending event not found" });
+  return res.status(200).json({ message: "Event approved" });
 });
 
-app.post('/reject', async (req, res) => {
-  await Event.update({ status: "cancelled" }, { where: { id: req.body.eventid } });
-  res.status(200).json({ msg: "ok" });
+app.post("/reject", verifyFirebaseToken, requireAdmin, async (req, res) => {
+  const [updatedCount] = await Event.update(
+    { status: "cancelled" },
+    { where: { id: req.body.eventid, status: "pending" } }
+  );
+
+  if (!updatedCount) return res.status(404).json({ message: "Pending event not found" });
+  return res.status(200).json({ message: "Event rejected" });
 });
 
-
-// BOOKING & PAYMENT ROUTES
-
-app.post('/bookticket', vt, async (req, res) => {
-  const { email } = req.user;
+// A user can only create a ticket for an approved event.
+app.post("/bookticket", verifyFirebaseToken, async (req, res) => {
   const { eventid } = req.body;
 
   try {
-    const ev = await Event.findByPk(eventid);
-    const x = await Ticket.create({ eventid, email, price: ev.price });
+    const event = await Event.findOne({ where: { id: eventid, status: "approved" } });
+    if (!event) return res.status(404).json({ message: "Approved event not found" });
+
+    const ticket = await Ticket.create({
+      eventid: event.id,
+      userId: req.user.id,
+      email: req.user.email,
+      price: event.price,
+    });
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-      expires_at: Math.floor(Date.now() / 1000) + (30 * 60),
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
       line_items: [{
         price_data: {
           currency: "inr",
-          product_data: { name: ev.title },
-          unit_amount: ev.price * 100,
+          product_data: { name: event.title },
+          unit_amount: Math.round(Number(event.price) * 100),
         },
         quantity: 1,
       }],
       success_url: `${process.env.frontendurl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.backendurl}/cancel-and-delete?ticketId=${x.id}`,
-      metadata: { bookingId: x.id },
+      cancel_url: `${process.env.frontendurl}/payment-cancel`,
+      metadata: { bookingId: String(ticket.id) },
     });
 
-    res.json({ url: session.url, id: x.id });
-  } catch (e) {
-    res.status(500).json({ error: 'Payment initialization failed' });
+    return res.json({ url: session.url, id: ticket.id });
+  } catch (error) {
+    console.error("Payment initialization failed:", error);
+    return res.status(500).json({ message: "Payment initialization failed" });
   }
 });
 
-app.get('/cancel-and-delete', async (req, res) => {
-  const { ticketId } = req.query;
-  if (ticketId) {
-    await Ticket.destroy({ where: { id: ticketId } });
-    console.log(`Ticket ${ticketId} cleaned up.`);
-  }
-  res.redirect(`${process.env.frontendurl}/payment-cancel`);
-});
-
-app.get('/mytickets', vt, async (req, res) => {
+app.get("/mytickets", verifyFirebaseToken, async (req, res) => {
   try {
-    const tickets = await Ticket.findAll({ 
-      where: { email: req.user.email, ticketType: 'booked' } 
+    const tickets = await Ticket.findAll({
+      where: {
+        ticketType: "booked",
+        [Op.or]: [{ userId: req.user.id }, { email: req.user.email }],
+      },
     });
-    
-    // Using a more efficient map for enrichment
+
     const enrichedTickets = await Promise.all(tickets.map(async (ticket) => {
       const event = await Event.findByPk(ticket.eventid);
-      return {
-        ...ticket.toJSON(),
-        event: event ? { title: event.title, date: event.date, time: event.time, location: event.location } : null
-      };
+      return { ...ticket.toJSON(), event: event ? {
+        title: event.title,
+        date: event.date,
+        time: event.time,
+        location: event.location,
+      } : null };
     }));
 
-    res.status(200).json(enrichedTickets.filter(t => t.event));
-  } catch (e) {
-    res.status(500).json({ error: "Failed to fetch tickets" });
+    return res.status(200).json(enrichedTickets.filter((ticket) => ticket.event));
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch tickets" });
   }
 });
-app.get('/ticket/:id', vt, async (req, res) => {
 
-  const ticketId = req.params.id;
-
+app.get("/ticket/:id", verifyFirebaseToken, async (req, res) => {
   try {
-
     const ticket = await Ticket.findOne({
-
-      where: { id: ticketId },
-
-     
-
+      where: {
+        id: req.params.id,
+        [Op.or]: [{ userId: req.user.id }, { email: req.user.email }],
+      },
     });
 
+    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
-
-    if (!ticket) {
-
-      return res.status(404).json({ error: "Ticket not found" });
-
-    }
-
-    const event = await Event.findOne({where:{id:ticket.eventid}});
-
-    res.status(200).json({
-
+    const event = await Event.findByPk(ticket.eventid);
+    return res.json({
       ticketId: ticket.id,
-
       email: ticket.email,
-
-      event: event,  // Includes title, date, time, etc.
-
+      event,
       price: ticket.price,
-
       ticketType: ticket.ticketType,
+      createdAt: ticket.createdAt,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch ticket" });
+  }
+});
 
-      createdAt: ticket.createdAt
-
+app.get("/verify-session/:sessionId", verifyFirebaseToken, async (req, res) => {
+  try {
+    const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
+    const ticket = await Ticket.findOne({
+      where: {
+        id: session.metadata?.bookingId,
+        [Op.or]: [{ userId: req.user.id }, { email: req.user.email }],
+      },
     });
 
-
-
-  } catch (e) {
-
-    console.log(e);
-
-    res.status(500).json({ error: "Failed to fetch ticket" });
-
+    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+    const event = await Event.findByPk(ticket.eventid);
+    return res.json({ status: ticket.ticketType, event });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to verify payment session" });
   }
-
 });
-app.get('/verify-session/:sessionId', async (req, res) => {
-  const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
-  const ticket = await Ticket.findByPk(session.metadata.bookingId);
-  const event = await Event.findByPk(ticket.eventid);
-  res.json({ status: ticket.ticketType, event });
-});
-
-
-// SERVER STARTUP
 
 sequelize.sync({ force: false })
   .then(() => {
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log(`🚀 Server: http://localhost:${PORT}`));
+    app.listen(PORT, () => console.log(`Server: http://localhost:${PORT}`));
   })
-  .catch((err) => console.error("Database Error:", err));
+  .catch((error) => console.error("Database Error:", error));
