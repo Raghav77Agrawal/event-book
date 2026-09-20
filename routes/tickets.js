@@ -1,19 +1,15 @@
 const express = require("express");
-const { Op } = require("sequelize");
 const { Event, Ticket } = require("../models");
 const verifyFirebaseToken = require("../middleware/auth");
+const requireUser = require("../middleware/requireUser");
 
 const router = express.Router();
+const authenticatedUser = [verifyFirebaseToken, requireUser];
 
-const ownershipWhere = (user, extra = {}) => ({
-  ...extra,
-  [Op.or]: [{ userId: user.id }, { email: user.email }],
-});
-
-router.get("/mytickets", verifyFirebaseToken, async (req, res) => {
+router.get("/mytickets", ...authenticatedUser, async (req, res) => {
   try {
     const tickets = await Ticket.findAll({
-      where: ownershipWhere(req.user, { ticketType: "booked" }),
+      where: { userId: req.user.id, ticketType: "booked" },
     });
 
     const enrichedTickets = await Promise.all(tickets.map(async (ticket) => {
@@ -35,10 +31,10 @@ router.get("/mytickets", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-router.get("/ticket/:id", verifyFirebaseToken, async (req, res) => {
+router.get("/ticket/:id", ...authenticatedUser, async (req, res) => {
   try {
     const ticket = await Ticket.findOne({
-      where: ownershipWhere(req.user, { id: req.params.id }),
+      where: { id: req.params.id, userId: req.user.id },
     });
 
     if (!ticket) return res.status(404).json({ message: "Ticket not found" });
