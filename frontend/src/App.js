@@ -15,6 +15,7 @@ import MyBookings from "./MyBookings";
 import AdminLogin from "./Admin";
 import AdminEventPage from "./AdminEventPage";
 import AdminDashboard from "./AdminDashBoard";
+import AdminAnalytics from "./AdminAnalytics";
 import PaymentSuccess from "./PaymentSuccess";
 import PaymentCancel from "./PaymentCancel";
 
@@ -61,6 +62,7 @@ function App() {
         <Route path="/ticket/:id" element={user ? <TicketDetails /> : <Navigate to="/login" />} />
         <Route path="/admin" element={<AdminLogin setIsAdmin={setIsAdmin} />} />
         <Route path="/admin/dashboard" element={isAdmin ? <AdminDashboard /> : <Navigate to="/admin" />} />
+        <Route path="/admin/analytics" element={isAdmin ? <AdminAnalytics /> : <Navigate to="/admin" />} />
         <Route path="/admin/event/:id" element={isAdmin ? <AdminEventPage /> : <Navigate to="/admin" />} />
         <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/payment-cancel" element={<PaymentCancel />} />

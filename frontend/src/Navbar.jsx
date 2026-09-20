@@ -23,7 +23,7 @@ const Navbar = ({ isAdmin, setIsAdmin }) => {
           <span className="brand-icon me-2">🎟️</span>
           <span className="brand-text">Event<span className="text-primary">Book</span></span>
         </Link>
-        <button className="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <button className="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
           <span className="navbar-toggler-icon" />
         </button>
         <div className="collapse navbar-collapse" id="navbarNav">
@@ -32,6 +32,7 @@ const Navbar = ({ isAdmin, setIsAdmin }) => {
             {user && <li className="nav-item"><Link className={isActive("/addevent")} to="/addevent">Host Event</Link></li>}
             {user && <li className="nav-item"><Link className={isActive("/event")} to="/event">My Bookings</Link></li>}
             {isAdmin && <li className="nav-item"><Link className={isActive("/admin/dashboard")} to="/admin/dashboard">Admin Dashboard</Link></li>}
+            {isAdmin && <li className="nav-item"><Link className={isActive("/admin/analytics")} to="/admin/analytics"><i className="bi bi-graph-up-arrow me-1" />Analytics</Link></li>}
             <div className="nav-divider d-none d-lg-block mx-3" />
             {user ? (
               <li className="nav-item ms-lg-3">

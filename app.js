@@ -6,6 +6,7 @@ const eventRoutes = require("./routes/events");
 const adminRoutes = require("./routes/admin");
 const bookingRoutes = require("./routes/bookings");
 const ticketRoutes = require("./routes/tickets");
+const analyticsRoutes = require("./routes/analytics");
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use(eventRoutes);
 app.use(adminRoutes);
 app.use(bookingRoutes);
 app.use(ticketRoutes);
+app.use(analyticsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
