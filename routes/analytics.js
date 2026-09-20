@@ -1,5 +1,5 @@
 const express = require("express");
-const { Op, fn, col, literal } = require("sequelize");
+const { fn, col, literal } = require("sequelize");
 const { User, Event, Ticket } = require("../models");
 const verifyFirebaseToken = require("../middleware/auth");
 const requireUser = require("../middleware/requireUser");
@@ -26,9 +26,16 @@ router.get("/admin/analytics", ...adminOnly, async (req, res) => {
         attributes: [
           "id",
           "title",
-          [literal("(SELECT COUNT(*) FROM tickets WHERE tickets.eventid = \"Event\".id AND tickets.\"ticketType\" = 'booked')"), "bookedTickets"],
+          // eventid is stored as VARCHAR in the legacy tickets table, while
+          // events.id is INTEGER. Cast the integer to text for PostgreSQL.
+          [literal(`(
+            SELECT COUNT(*)
+            FROM tickets
+            WHERE tickets.eventid = CAST("Event".id AS TEXT)
+              AND tickets."ticketType" = 'booked'
+          )`), "bookedTickets"],
         ],
-        order: [[literal("\"bookedTickets\""), "DESC"]],
+        order: [[literal('"bookedTickets"'), "DESC"]],
         limit: 5,
         raw: true,
       }),
