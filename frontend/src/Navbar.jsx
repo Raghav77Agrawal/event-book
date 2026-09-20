@@ -30,6 +30,7 @@ const Navbar = ({ isAdmin, setIsAdmin }) => {
           <ul className="navbar-nav ms-auto align-items-center">
             <li className="nav-item"><Link className={isActive("/")} to="/">Upcoming</Link></li>
             {user && <li className="nav-item"><Link className={isActive("/addevent")} to="/addevent">Host Event</Link></li>}
+            {user && <li className="nav-item"><Link className={isActive("/event")} to="/event">My Bookings</Link></li>}
             {isAdmin && <li className="nav-item"><Link className={isActive("/admin/dashboard")} to="/admin/dashboard">Admin Dashboard</Link></li>}
             <div className="nav-divider d-none d-lg-block mx-3" />
             {user ? (
