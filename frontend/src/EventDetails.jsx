@@ -13,8 +13,8 @@ const EventDetails = () => {
       const user = auth.currentUser;
 
       if (!user) {
-        alert("Please login to reserve your spot!");
         navigate("/login");
+        return;
       }
 
       const token = await user.getIdToken();
@@ -57,15 +57,12 @@ const EventDetails = () => {
 
   return (
     <div className="event-details-wrapper">
-      {/* Animated Background Shapes */}
       <div className="bg-shape shape-1"></div>
       <div className="bg-shape shape-2"></div>
       <div className="bg-shape shape-3"></div>
 
       <div className="container py-5 d-flex justify-content-center align-items-center position-relative">
         <div className="glass-event-card shadow-lg overflow-hidden">
-          
-          {/* Top Banner Section */}
           <div className="event-header-banner p-5 text-center text-white">
             <span className="badge bg-warning text-dark mb-3 px-3 py-2 rounded-pill fw-bold">
               UPCOMING EVENT
@@ -76,7 +73,6 @@ const EventDetails = () => {
 
           <div className="p-4 p-md-5 bg-white">
             <div className="row g-4">
-              {/* Left Column: Description */}
               <div className="col-md-7">
                 <h5 className="fw-bold text-primary mb-3">About the Event</h5>
                 <p className="text-muted leading-relaxed">
@@ -84,7 +80,6 @@ const EventDetails = () => {
                 </p>
               </div>
 
-              {/* Right Column: Key Details */}
               <div className="col-md-5">
                 <div className="info-box p-3 rounded-3 mb-3 d-flex align-items-center">
                   <div className="icon-circle bg-primary-light me-3">📅</div>
@@ -116,9 +111,7 @@ const EventDetails = () => {
               <button onClick={handleBookTicket} className="btn-premium-book">
                 Confirm Booking & Pay
               </button>
-              <p className="mt-3 text-muted small">
-                * Secure checkout powered by Stripe
-              </p>
+              <p className="mt-3 text-muted small">* Secure checkout powered by Stripe</p>
             </div>
           </div>
         </div>

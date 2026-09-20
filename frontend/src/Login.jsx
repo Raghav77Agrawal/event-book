@@ -12,24 +12,30 @@ const Login = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const syncUserToBackend = async (user) => {
+    const token = await user.getIdToken();
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/protected`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    return res.ok;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = auth.currentUser;
-      const token = await user.getIdToken();
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/protected`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        credentials: 'include'
-      });
 
-      if (res.ok) {
-        navigate("/events"); // Smooth redirect after login
+    try {
+      const result = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      const isOk = await syncUserToBackend(result.user);
+
+      if (isOk) {
+        navigate("/");
       } else {
         alert("Login failed. Please check credentials.");
       }
@@ -42,8 +48,9 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
-      navigate("/events");
+      const result = await signInWithPopup(auth, googleProvider);
+      const isOk = await syncUserToBackend(result.user);
+      if (isOk) navigate("/");
     } catch (err) {
       alert("Google Login failed");
     }
@@ -51,7 +58,6 @@ const Login = () => {
 
   return (
     <div className="login-page">
-      {/* Animated Background Elements */}
       <div className="bg-circles">
         <div className="circle circle-1"></div>
         <div className="circle circle-2"></div>
@@ -109,7 +115,7 @@ const Login = () => {
           </button>
 
           <p className="text-center small text-muted mb-0">
-            New here? <Link to="/" className="text-primary fw-bold text-decoration-none">Create an account</Link>
+            New here? <Link to="/signup" className="text-primary fw-bold text-decoration-none">Create an account</Link>
           </p>
         </div>
       </div>

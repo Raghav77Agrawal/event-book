@@ -15,12 +15,12 @@ const Signup = () => {
   const sendTokenToBackend = async (user) => {
     const token = await user.getIdToken();
     const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/protected`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      credentials: 'include',
+      credentials: "include",
     });
     return res.ok;
   };
@@ -29,9 +29,9 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const isOk = await sendTokenToBackend(auth.currentUser);
-      if (isOk) navigate("/events");
+      const result = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const isOk = await sendTokenToBackend(result.user);
+      if (isOk) navigate("/");
     } catch (err) {
       alert(err.message);
     } finally {
@@ -41,9 +41,9 @@ const Signup = () => {
 
   const handleGoogleSignup = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
-      const isOk = await sendTokenToBackend(auth.currentUser);
-      if (isOk) navigate("/events");
+      const result = await signInWithPopup(auth, googleProvider);
+      const isOk = await sendTokenToBackend(result.user);
+      if (isOk) navigate("/");
     } catch (err) {
       console.error(err);
     }
@@ -51,7 +51,6 @@ const Signup = () => {
 
   return (
     <div className="auth-page-wrapper">
-      {/* Animated Background Orbs */}
       <div className="orb orb-1"></div>
       <div className="orb orb-2"></div>
 

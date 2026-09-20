@@ -10,7 +10,12 @@ router.post("/protected", verifyFirebaseToken, async (req, res) => {
   try {
     const [user] = await User.findOrCreate({
       where: { firebaseuid: uid },
-      defaults: { name: name || email, email, firebaseuid: uid },
+      defaults: {
+        name: name || email,
+        email,
+        firebaseuid: uid,
+        role: "user",
+      },
     });
 
     if (user.email !== email || user.name !== (name || email)) {
