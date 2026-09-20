@@ -8,8 +8,12 @@ const authenticatedUser = [verifyFirebaseToken, requireUser];
 
 router.get("/mytickets", ...authenticatedUser, async (req, res) => {
   try {
+    // Return all tickets belonging to the authenticated user. A pending or
+    // failed payment should remain visible so the user can understand its
+    // current status instead of seeing an empty bookings page.
     const tickets = await Ticket.findAll({
-      where: { userId: req.user.id, ticketType: "booked" },
+      where: { userId: req.user.id },
+      order: [["createdAt", "DESC"]],
     });
 
     const enrichedTickets = await Promise.all(tickets.map(async (ticket) => {
@@ -27,6 +31,7 @@ router.get("/mytickets", ...authenticatedUser, async (req, res) => {
 
     return res.json(enrichedTickets.filter((ticket) => ticket.event));
   } catch (error) {
+    console.error("Failed to fetch tickets:", error);
     return res.status(500).json({ message: "Failed to fetch tickets" });
   }
 });
@@ -49,6 +54,7 @@ router.get("/ticket/:id", ...authenticatedUser, async (req, res) => {
       createdAt: ticket.createdAt,
     });
   } catch (error) {
+    console.error("Failed to fetch ticket:", error);
     return res.status(500).json({ message: "Failed to fetch ticket" });
   }
 });
