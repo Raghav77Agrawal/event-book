@@ -4,8 +4,8 @@ const sequelize = require("../db");
 const Ticket = sequelize.define("Ticket", {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   ticketType: {
-    type: DataTypes.ENUM("cancelled", "booked"),
-    defaultValue: "cancelled",
+    type: DataTypes.ENUM("pending", "booked", "failed", "cancelled"),
+    defaultValue: "pending",
     allowNull: false,
   },
   price: { type: DataTypes.FLOAT, allowNull: false, validate: { min: 0 } },
