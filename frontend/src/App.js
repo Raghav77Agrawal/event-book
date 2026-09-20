@@ -1,36 +1,51 @@
-import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
+import { useEffect, useState } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "./firebase";
+import Navbar from "./Navbar";
 import Signup from "./Signup";
 import Login from "./Login";
 import EventList from "./EventsList";
 import EventBooking from "./Booking";
-import Navbar from "./Navbar";
 import AddEvent from "./AddEvent";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "./firebase";
 import EventDetails from "./EventDetails";
 import TicketDetails from "./TicketDetails";
 import MyBookings from "./MyBookings";
 import AdminLogin from "./Admin";
-
-import { useState, useEffect } from "react";
-import AdminEventPage from "./AdminEventPage.jsx";
-import AdminDashboard from "./AdminDashBoard.jsx";
-import PaymentSuccess from "./PaymentSuccess.jsx";
-import PaymentCancel from "./PaymentCancel.jsx";
+import AdminEventPage from "./AdminEventPage";
+import AdminDashboard from "./AdminDashBoard";
+import PaymentSuccess from "./PaymentSuccess";
+import PaymentCancel from "./PaymentCancel";
 
 function App() {
   const [user, loading] = useAuthState(auth);
-
-  // 🧩 Admin login state
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const storedAdmin = localStorage.getItem("isAdmin");
-    if (storedAdmin === "true") setIsAdmin(true);
-  }, []);
+    const loadRole = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
 
-  if (loading) return <p>Loading...</p>;
+      try {
+        const token = await user.getIdToken();
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/protected`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        });
+        const data = await response.json();
+        setIsAdmin(response.ok && data.user?.role === "admin");
+      } catch {
+        setIsAdmin(false);
+      }
+    };
+
+    loadRole();
+  }, [user]);
+
+  if (loading) return <p className="text-center mt-5">Loading...</p>;
 
   return (
     <Router>
@@ -39,24 +54,16 @@ function App() {
         <Route path="/" element={<EventList />} />
         <Route path="/signup" element={!user ? <Signup /> : <Navigate to="/" />} />
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
-        <Route path="/event" element={<MyBookings />} />
+        <Route path="/event" element={user ? <MyBookings /> : <Navigate to="/login" />} />
         <Route path="/book" element={user ? <EventBooking /> : <Navigate to="/login" />} />
-        <Route path="/addevent" element={user || isAdmin ? <AddEvent /> : <Navigate to="/login" />} />
+        <Route path="/addevent" element={user ? <AddEvent /> : <Navigate to="/login" />} />
         <Route path="/event/:id" element={<EventDetails />} />
-        <Route path="/ticket/:id" element={<TicketDetails />} />
-        <Route path="/admin/event/:id" element={isAdmin ? <AdminEventPage></AdminEventPage> : <Navigate to="admin" />} />
-
-        {/* 🧠 Pass setIsAdmin to AdminLogin */}
+        <Route path="/ticket/:id" element={user ? <TicketDetails /> : <Navigate to="/login" />} />
         <Route path="/admin" element={<AdminLogin setIsAdmin={setIsAdmin} />} />
-        {/* Optional dashboard route */}
-        <Route
-          path="/admin/dashboard"
-          element={
-            isAdmin ? <AdminDashboard className="text-center mt-5">Pending Requests (Admin Dashboard)</AdminDashboard> : <Navigate to="/admin" />
-          }
-        />
+        <Route path="/admin/dashboard" element={isAdmin ? <AdminDashboard /> : <Navigate to="/admin" />} />
+        <Route path="/admin/event/:id" element={isAdmin ? <AdminEventPage /> : <Navigate to="/admin" />} />
         <Route path="/payment-success" element={<PaymentSuccess />} />
-<Route path="/payment-cancel" element={<PaymentCancel />} />
+        <Route path="/payment-cancel" element={<PaymentCancel />} />
       </Routes>
     </Router>
   );

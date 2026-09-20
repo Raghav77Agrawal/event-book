@@ -1,10 +1,11 @@
 const express = require("express");
 const { Event } = require("../models");
 const verifyFirebaseToken = require("../middleware/auth");
+const requireUser = require("../middleware/requireUser");
 const requireAdmin = require("../middleware/admin");
 
 const router = express.Router();
-const adminOnly = [verifyFirebaseToken, requireAdmin];
+const adminOnly = [verifyFirebaseToken, requireUser, requireAdmin];
 
 router.get("/pending-req", ...adminOnly, async (req, res) => {
   try {

@@ -1,6 +1,4 @@
-// middleware/auth.js
 const admin = require("../firebaseAdmin");
-const User = require("../models/user");
 
 const verifyFirebaseToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -16,19 +14,7 @@ const verifyFirebaseToken = async (req, res, next) => {
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    const user = await User.findOne({
-      where: { firebaseuid: decodedToken.uid },
-    });
-
-    if (!user) {
-      return res.status(403).json({
-        message: "User profile not found. Complete account setup first.",
-      });
-    }
-
-    req.firebaseUser = decodedToken;
-    req.user = user;
+    req.firebaseUser = await admin.auth().verifyIdToken(idToken);
     next();
   } catch (error) {
     return res.status(401).json({ message: "Invalid or expired token" });

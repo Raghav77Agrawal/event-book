@@ -1,8 +1,10 @@
 const express = require("express");
 const { Event } = require("../models");
 const verifyFirebaseToken = require("../middleware/auth");
+const requireUser = require("../middleware/requireUser");
 
 const router = express.Router();
+const authenticatedUser = [verifyFirebaseToken, requireUser];
 
 router.get("/view-events", async (req, res) => {
   try {
@@ -23,8 +25,8 @@ router.get("/view-event/:id", async (req, res) => {
   }
 });
 
-router.post("/add-event", verifyFirebaseToken, async (req, res) => {
-  const { name, description, date, time, venue, price } = req.body;
+router.post("/add-event", ...authenticatedUser, async (req, res) => {
+  const { name, description, date, time, venue, price, organizer } = req.body;
 
   try {
     const event = await Event.create({
@@ -34,7 +36,7 @@ router.post("/add-event", verifyFirebaseToken, async (req, res) => {
       time,
       location: venue,
       price,
-      createdBy: req.user.name || req.user.email,
+      createdBy: organizer || req.user.name || req.user.email,
       status: "pending",
     });
 
