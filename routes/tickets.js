@@ -9,7 +9,7 @@ const authenticatedUser = [verifyFirebaseToken, requireUser];
 router.get("/mytickets", ...authenticatedUser, async (req, res) => {
   try {
     const tickets = await Ticket.findAll({
-      where: { userId: req.user.id },
+      where: { userId: req.user.id, ticketType: "booked" },
       order: [["createdAt", "DESC"]],
     });
 
