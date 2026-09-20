@@ -1,15 +1,13 @@
 // models/index.js
+const sequelize = require("../db");
 const User = require("./user");
 const Event = require("./event");
 const Ticket = require("./ticket");
 
-// Associations
-User.hasMany(Ticket);
-Ticket.belongsTo(User);
+User.hasMany(Ticket, { foreignKey: "userId", as: "tickets" });
+Ticket.belongsTo(User, { foreignKey: "userId", as: "user" });
 
-Event.hasMany(Ticket,{foreignKey:"eventid"});
-Ticket.belongsTo(Event,{foreignKey:"eventid"});
+Event.hasMany(Ticket, { foreignKey: "eventid", as: "tickets" });
+Ticket.belongsTo(Event, { foreignKey: "eventid", as: "event" });
 
-sequelize.sync({ alter: true })  // or force: true for dev
-  .then(() => console.log("✅ Tables created/updated"));
-module.exports = { User, Event, Ticket };
+module.exports = { sequelize, User, Event, Ticket };
