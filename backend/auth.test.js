@@ -1,4 +1,4 @@
-// auth.test.js — place this at your project root, alongside the "middleware" folder
+// auth.test.js — place this in backend/, alongside the "middleware" folder
 
 const mockVerifyIdToken = jest.fn();
 
