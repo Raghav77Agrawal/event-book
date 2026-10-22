@@ -13,7 +13,16 @@ const AdminEventPage = () => {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/view-event/${id}`);
+        const user = getAuth().currentUser;
+        if (!user) {
+          navigate("/admin");
+          return;
+        }
+
+        const token = await user.getIdToken();
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/admin/event/${id}`, {
+          headers: { Authorization: `****** },
+        });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || "Event not found");
         setEvent(data);
@@ -25,7 +34,7 @@ const AdminEventPage = () => {
     };
 
     fetchEvent();
-  }, [id]);
+  }, [id, navigate]);
 
   const handleAction = async (endpoint) => {
     setActionLoading(true);
