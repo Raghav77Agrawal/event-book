@@ -5,6 +5,7 @@ const requireUser = require("../middleware/requireUser");
 
 const router = express.Router();
 const authenticatedUser = [verifyFirebaseToken, requireUser];
+const serializePrice = (value) => Number(value).toFixed(2);
 
 router.get("/mytickets", ...authenticatedUser, async (req, res) => {
   try {
@@ -17,12 +18,13 @@ router.get("/mytickets", ...authenticatedUser, async (req, res) => {
       const event = await Event.findByPk(ticket.eventid);
       return {
         ...ticket.toJSON(),
-        event: event ? {
+        event: event && event.status === "approved" ? {
           title: event.title,
           date: event.date,
           time: event.time,
           location: event.location,
         } : null,
+        price: serializePrice(ticket.price),
       };
     }));
 
@@ -35,10 +37,15 @@ router.get("/mytickets", ...authenticatedUser, async (req, res) => {
 
 router.get("/ticket/:id", ...authenticatedUser, async (req, res) => {
   try {
-    const ticket = await Ticket.findOne({ where: { id: req.params.id, userId: req.user.id } });
+    const ticketId = Number(req.params.id);
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(400).json({ message: "A valid ticket id is required" });
+    }
+    const ticket = await Ticket.findOne({ where: { id: ticketId, userId: req.user.id } });
     if (!ticket) return res.status(404).json({ message: "Ticket not found" });
     const event = await Event.findByPk(ticket.eventid);
-    return res.json({ ticketId: ticket.id, email: ticket.email, event, price: ticket.price, ticketType: ticket.ticketType, createdAt: ticket.createdAt });
+    if (!event || event.status !== "approved") return res.status(404).json({ message: "Ticket event not available" });
+    return res.json({ ticketId: ticket.id, email: ticket.email, event, price: serializePrice(ticket.price), ticketType: ticket.ticketType, createdAt: ticket.createdAt });
   } catch (error) {
     console.error("Failed to fetch ticket:", error);
     return res.status(500).json({ message: "Failed to fetch ticket" });

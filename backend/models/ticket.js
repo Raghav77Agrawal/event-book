@@ -8,7 +8,7 @@ const Ticket = sequelize.define("Ticket", {
     defaultValue: "pending",
     allowNull: false,
   },
-  price: { type: DataTypes.FLOAT, allowNull: false, validate: { min: 0 } },
+  price: { type: DataTypes.DECIMAL(10, 2), allowNull: false, validate: { min: 0 } },
   eventid: { type: DataTypes.INTEGER, allowNull: false },
   userId: { type: DataTypes.INTEGER, allowNull: false },
   email: { type: DataTypes.STRING, allowNull: false },

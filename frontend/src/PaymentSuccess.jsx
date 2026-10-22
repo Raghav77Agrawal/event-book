@@ -19,7 +19,13 @@ const PaymentSuccess = () => {
         const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/verify-session/${sessionId}`, { headers: { Authorization: `Bearer ${token}` } });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || "Payment verification failed");
-        setMessage(data.status === "booked" ? "Payment confirmed. Your ticket is ready." : "Payment received; ticket confirmation is pending.");
+        if (data.status === "booked") {
+          setMessage("Payment confirmed. Your ticket is ready.");
+        } else if (data.paymentStatus === "paid") {
+          setMessage("Payment received; ticket confirmation is processing.");
+        } else {
+          setMessage("Payment is not completed yet.");
+        }
       } catch (error) { setMessage(error.message); }
       finally { setLoading(false); }
     };

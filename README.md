@@ -1,62 +1,68 @@
-# 🎟️ EventBook
+# EventBook
 
-[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Sequelize](https://img.shields.io/badge/Sequelize-52B0E7?style=for-the-badge&logo=sequelize&logoColor=white)](https://sequelize.org/)
-[![Stripe](https://img.shields.io/badge/Stripe-625AFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com/)
+EventBook is a React + Express + PostgreSQL event booking system with Firebase-authenticated users, admin approval flows, and Stripe Checkout.
 
-**EventBook** is a robust event management ecosystem built on the PERN stack. It leverages the relational power of **PostgreSQL** and **Sequelize ORM** to manage complex ticket inventories, secure **Stripe** transactions, and real-time **QR-code** entry validation.
+## Architecture and operations (Phase 1)
 
-[**Live Demo »**](https://your-app-link.com) | [**Report Bug »**](https://github.com/your-username/repo/issues) | [**Request Feature »**](https://github.com/your-username/repo/issues)
+- **Frontend** (`/frontend`): React app calling backend APIs via `REACT_APP_BACKEND_URL`.
+- **Backend** (`/backend`): Express APIs, Sequelize models, Stripe checkout + webhook processing.
+- **Database**: PostgreSQL (`DATABASE_URL`).
+- **Payment state source of truth**: Stripe webhook updates ticket lifecycle (`pending` → `booked`/`failed`/`cancelled`).
 
----
+### Required environment variables
 
-## ✨ Key Features
+Copy `.env.example` to `.env` and set:
 
-* **💳 Secure Payments:** Seamless **Stripe Checkout** integration for global ticket sales.
-* **📱 QR Entry System:** Dynamic QR codes generated for every ticket, verified via backend scanning.
-* **🗄️ Relational Data:** Structured PostgreSQL schema to manage Users, Events, and Bookings with full integrity.
-* **🔒 JWT Authentication:** Secure user sessions and protected API routes.
-* **🔄 Deployment Optimized:** Configured for SPA routing to prevent 404 errors on refresh.
+- `PORT`, `NODE_ENV`
+- `DATABASE_URL`
+- `DB_SSL_REJECT_UNAUTHORIZED` (`true` in production unless your provider documents otherwise)
+- `frontendurl` (backend success/cancel redirect origin)
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- Firebase Admin credentials: `PROJECT_ID`, `CLIENT_EMAIL`, `PRIVATE_KEY`, and related fields listed in `.env.example`
+- Frontend `.env`: `REACT_APP_BACKEND_URL`
 
----
+### Safe migration required before production deploy
 
-## 🛠️ Tech Stack
+Run the SQL migration in `backend/migrations/20261022_phase1_hardening.sql`:
 
-| Layer | Technology | Role |
-| :--- | :--- | :--- |
-| **Frontend** | React.js | Dynamic UI and booking interface. |
-| **Backend** | Node.js / Express | RESTful API and Stripe Webhook handling. |
-| **Database** | PostgreSQL | Relational storage for reliable data persistence. |
-| **ORM** | Sequelize | Promise-based Node.js ORM for Postgres. |
-| **Payments** | Stripe API | Managed payment sessions and security. |
-| **QR Logic** | QRCode.react | Client-side ticket encoding. |
+- converts `events.price` and `tickets.price` from float to `NUMERIC(10,2)`
+- prevents floating-point money storage drift
 
----
+### Local development
 
-## 🔄 The Ticket Lifecycle
-
-1. **Selection:** User chooses an event and quantity.
-2. **Payment:** **Stripe** processes the transaction.
-3. **Webhook:** The backend receives a `checkout.session.completed` event.
-4. **Database:** **Sequelize** creates a new `Booking` record with a unique UUID.
-5. **Validation:** Staff scan the QR (containing the UUID). The server checks the DB and updates the `is_redeemed` flag.
-
----
-
-## 🖼️ App Preview
-
-| 🔐 OAuth Authentication | 💳 Event Details | 🎟️ Digital Ticket |
-| :---: | :---: | :---: |
-| <img src="./assets/img1.png" width="250" alt="Auth" /> | <img src="./assets/img2.png" width="250" alt="Details" /> | <img src="./assets/img3.png" width="250" alt="Ticket" /> |
-
----
-
-## 🚀 Installation & Setup
-
-### 1. Clone & Install
 ```bash
-git clone [https://github.com/your-username/eventpulse-pro.git](https://github.com/your-username/eventpulse-pro.git)
-cd eventpulse-pro
 npm install
+npm run dev
+```
+
+In another terminal:
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+### Production startup
+
+```bash
+npm ci --omit=dev
+npm start
+```
+
+`npm start` uses `node backend/index.js` (not nodemon).
+
+### Tests and build
+
+```bash
+npm test
+npm run build --prefix frontend
+```
+
+### CI
+
+GitHub Actions workflow (`.github/workflows/ci.yml`) runs:
+
+- install + backend tests
+- frontend production build

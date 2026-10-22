@@ -7,6 +7,7 @@ const adminRoutes = require("./routes/admin");
 const bookingRoutes = require("./routes/bookings");
 const ticketRoutes = require("./routes/tickets");
 const analyticsRoutes = require("./routes/analytics");
+const { AppError } = require("./utils/errors");
 
 const app = express();
 
@@ -33,8 +34,21 @@ app.use((req, res) => {
 });
 
 app.use((error, req, res, next) => {
-  console.error("Unhandled server error:", error);
-  res.status(500).json({ message: "Internal server error" });
+  const statusCode = error instanceof AppError && Number.isInteger(error.statusCode)
+    ? error.statusCode
+    : 500;
+  const message = statusCode >= 500 ? "Internal server error" : error.message;
+
+  if (statusCode >= 500) {
+    console.error("Unhandled server error:", error);
+  }
+
+  const response = { message };
+  if (statusCode < 500 && error.details) {
+    response.details = error.details;
+  }
+
+  res.status(statusCode).json(response);
 });
 
 module.exports = app;

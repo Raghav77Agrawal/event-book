@@ -13,7 +13,7 @@ const Event = sequelize.define("Event", {
     defaultValue: "pending",
     allowNull: false,
   },
-  price: { type: DataTypes.FLOAT, allowNull: false, validate: { min: 0 } },
+  price: { type: DataTypes.DECIMAL(10, 2), allowNull: false, validate: { min: 0 } },
   createdBy: { type: DataTypes.STRING, allowNull: false },
 }, {
   tableName: "events",
